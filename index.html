@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>抓蟲小隊 Debug Patrol</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🐞%3C/text%3E%3C/svg%3E">
+<style>
+:root{--font:"Microsoft JhengHei","PingFang TC",sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;font-family:var(--font);font-size:16px;background:#EEF1F8;color:#24304A}
+button{font-family:inherit;font-size:16px;cursor:pointer;border:none;border-radius:10px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.screen{position:fixed;inset:0;display:none}
+.screen.on{display:flex}
+
+/* ---------- start / summary ---------- */
+#start,#summary{align-items:center;justify-content:center;background:radial-gradient(circle at 30% 20%,#FFF6D8,#FFE3A3 60%,#FFD27A)}
+.card{background:#fff;border-radius:22px;box-shadow:0 10px 40px rgba(0,0,0,.15);padding:30px 46px;max-width:760px;text-align:center}
+.card h1{font-size:46px;margin:0 0 4px}
+.card .en{color:#8A93AB;font-size:18px;margin-bottom:14px;letter-spacing:2px}
+.ways{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;margin:18px 0 22px}
+.ways div{background:#F4F6FC;border-radius:12px;padding:10px 14px;font-size:17px}
+.big{background:#FF8C1A;color:#fff;font-size:24px;padding:14px 44px;box-shadow:0 4px 0 #C96500;font-weight:bold}
+.big:active{transform:translateY(2px);box-shadow:0 2px 0 #C96500}
+.small{background:#E7EAF3;color:#46506B;padding:6px 14px;font-size:15px;margin-top:16px}
+.sumtime{font-size:64px;font-weight:bold;margin:6px 0;font-variant-numeric:tabular-nums}
+.sumstar{font-size:40px;margin:4px 0}
+.sumtitle{font-size:36px;font-weight:bold;color:#C96500;margin:10px 0}
+.sumrow{display:flex;gap:6px;justify-content:center;margin:8px 0 14px;flex-wrap:wrap}
+.sumrow span{background:#F4F6FC;border-radius:8px;padding:4px 8px;font-size:14px}
+#nameIn{font:inherit;font-size:28px;padding:8px 14px;border:3px solid #FFC56B;border-radius:12px;width:320px;text-align:center}
+
+/* ---------- game ---------- */
+#game{flex-direction:column;right:auto;bottom:auto;transform-origin:0 0}
+.card{transform:scale(var(--cs,1))}
+#passPop{position:fixed;inset:0;background:rgba(20,26,44,.45);display:none;align-items:center;justify-content:center;z-index:1400}
+#passPop.on{display:flex}
+#passPop .card{min-width:380px}
+#passPop .good{font-size:40px}
+#passPop .stars{font-size:46px;margin:8px 0 14px}
+#passPop .next{font-size:26px;padding:12px 40px}
+#top{height:44px;flex:none;display:flex;align-items:center;gap:26px;padding:0 16px;background:#24304A;color:#fff;font-size:18px}
+#top .name{font-weight:bold;font-size:20px}
+#top .sp{flex:1}
+#top button{background:#3A4870;color:#fff;font-size:14px;padding:5px 12px}
+#task{flex:none;min-height:50px;display:flex;align-items:center;gap:14px;padding:5px 16px;background:#FFF7D6;border-bottom:1px solid #EBDDA5}
+#taskText{flex:1;font-size:19px}
+#taskText b{color:#C96500}
+#taskNote{display:block;font-size:15px;color:#7A5B12;margin-top:2px}
+#bugN{font-size:20px;font-weight:bold;background:#fff;border-radius:999px;padding:4px 14px;border:2px solid #F2C94C;white-space:nowrap}
+#main{flex:1;min-height:0;display:grid;grid-template-columns:232px minmax(0,1fr) 492px;gap:8px;padding:8px}
+.panel{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.ph{font-weight:bold;padding:8px 12px;border-bottom:1px solid #EEF0F5;font-size:16px;color:#46506B}
+#palette{display:flex;flex-direction:column;min-height:0;overflow:hidden;transition:background .15s}
+#palette.trash{background:#FFE5E5}
+#palbody{flex:1;overflow:auto;padding:12px 10px;display:flex;flex-direction:column;align-items:flex-start;gap:16px}
+.palmsg{color:#8A93AB;font-size:15px;line-height:1.6}
+.trashhint{flex:none;padding:8px;text-align:center;font-size:14px;color:#8A93AB;border-top:1px dashed #DDE1EA}
+#prog{display:flex;flex-direction:column;min-width:0;min-height:0}
+#tabs{flex:none;display:flex;gap:6px;padding:6px 8px 0;border-bottom:1px solid #EEF0F5}
+#tabs:empty{display:none}
+#tabs button{background:#EEF0F5;color:#46506B;border-radius:10px 10px 0 0;padding:6px 16px;font-size:16px}
+#tabs button.on{background:#4C97FF;color:#fff;font-weight:bold}
+#ws{flex:1;position:relative;overflow:auto;background-color:#F7F8FC;background-image:radial-gradient(#D5DAE6 1px,transparent 1px);background-size:20px 20px;border-radius:0 0 12px 12px}
+#wsin{position:relative;min-width:100%;min-height:100%}
+#prog.locked #ws,#prog.locked+#palette,#palette.locked{pointer-events:none}
+#prog.locked #ws{filter:saturate(.9)}
+#roTag{position:sticky;left:0;top:0;display:inline-block;margin:6px;background:#FFF1C9;color:#7A5B12;border-radius:8px;padding:3px 10px;font-size:14px;z-index:5}
+.stack{position:absolute;display:flex;flex-direction:column;align-items:flex-start}
+#right{display:flex;flex-direction:column;gap:8px;min-height:0}
+#stage{flex:none;position:relative;width:484px;height:364px;border:2px solid #CBD3E6;border-radius:8px;overflow:hidden;background:linear-gradient(#EAF6FF,#FFFFFF 70%)}
+#stage canvas{position:absolute;left:0;top:0}
+.ground{position:absolute;left:0;right:0;top:210px;bottom:0;background:linear-gradient(#8BD36B,#5FAF46);border-top:3px solid #4E9A37}
+.sprite{position:absolute;left:0;top:0;will-change:transform}
+.sprite svg{display:block}
+.bubble{position:absolute;left:0;top:0;background:#fff;border:2px solid #B9C1D3;border-radius:14px;padding:5px 12px;font-size:17px;max-width:220px;white-space:nowrap;display:none;box-shadow:0 2px 4px rgba(0,0,0,.1);z-index:4}
+.monitors{position:absolute;left:6px;top:6px;display:flex;flex-direction:column;gap:4px;z-index:5}
+.monitor{background:#E9EEF2;border:1px solid #C4CCD8;border-radius:6px;padding:2px 4px 2px 8px;font-size:14px;color:#575E75;display:flex;align-items:center;gap:8px}
+.monitor .mv{background:#FF8C1A;color:#fff;border-radius:5px;padding:1px 8px;min-width:28px;text-align:center;font-weight:bold}
+#runlabel{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:24px;font-weight:bold;color:#24304A;background:rgba(255,255,255,.85);border-radius:10px;padding:0 12px;z-index:5}
+#runlabel:empty{display:none}
+#keyind{position:absolute;right:8px;bottom:8px;background:#24304A;color:#fff;border-radius:8px;padding:4px 10px;font-size:16px;z-index:5;display:none}
+#btns{flex:none;display:flex;gap:8px}
+#btns button{padding:9px 14px;font-weight:bold;font-size:17px;color:#fff}
+#runBtn{background:#4CBF56;flex:1.3;box-shadow:0 3px 0 #389438}
+#runBtn.stop{background:#E5484D;box-shadow:0 3px 0 #B3262B}
+#resetBtn{background:#7C8AA8;box-shadow:0 3px 0 #5B6884}
+#hintBtn{background:#F2B21B;box-shadow:0 3px 0 #C28B0A}
+#playBtn{background:#4C97FF;box-shadow:0 3px 0 #3373CC}
+#solBtn{background:#9966FF;box-shadow:0 3px 0 #774DCB}
+#fb{flex:1;min-height:0;overflow:auto;padding:10px 14px;font-size:17px;line-height:1.55}
+.hintline{background:#FFF7D6;border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:16px}
+.good{font-size:26px;font-weight:bold;color:#2E8B3A}
+.bad{font-size:22px;font-weight:bold;color:#C0392B}
+.why{margin:4px 0}
+.cnt{display:inline-block;background:#FDECEC;border-radius:999px;padding:2px 12px;margin-top:4px;font-weight:bold}
+.cnt.ok{background:#E3F6E5}
+.stars{font-size:30px;letter-spacing:4px}
+.next{background:#FF8C1A;color:#fff;font-size:20px;font-weight:bold;padding:8px 26px;margin-top:6px;box-shadow:0 3px 0 #C96500}
+.muted{color:#7C8AA8}
+
+/* ---------- blocks ---------- */
+.blk{position:relative;display:flex;flex-direction:column;align-items:stretch;width:max-content;color:#fff;font-size:15px;line-height:1.2;user-select:none;-webkit-user-select:none;cursor:grab;touch-action:none}
+.blk>.row{position:relative;display:flex;align-items:center;gap:5px;min-height:33px;padding:2px 9px;background:var(--c);border:1px solid var(--d);border-radius:5px;white-space:nowrap}
+.blk.c>.row:first-child,.blk.c2>.row:first-child,.blk.capc>.row:first-child{border-bottom-left-radius:0}
+.blk>.row.mid{border-radius:0 5px 5px 0;min-height:30px}
+.cbody{display:flex;flex-direction:column;align-items:flex-start;min-height:24px;border-left:16px solid var(--c);box-shadow:-1px 0 0 var(--d)}
+.cfoot{position:relative;height:16px;background:var(--c);border:1px solid var(--d);border-top:none;border-radius:0 5px 5px 5px}
+.tail::after,.tailc::after{content:"";position:absolute;bottom:-8px;width:22px;height:8px;background:var(--c);border:1px solid var(--d);border-top:none;border-radius:0 0 6px 6px;z-index:3}
+.tail::after{left:14px}.tailc::after{left:30px}
+.blk.hat>.row{border-top-left-radius:0;padding-top:4px;min-height:36px}
+.blk.hat>.row::before{content:"";position:absolute;left:-1px;top:-14px;width:86px;height:15px;background:var(--c);border:1px solid var(--d);border-bottom:none;border-radius:43px 43px 0 0/15px 15px 0 0}
+.blk.cap>.row{border-radius:5px}
+.lbl{pointer-events:none}
+.blk input,.blk .num{font:inherit;font-size:15px;color:#24304A;background:#fff;border:1px solid rgba(0,0,0,.18);border-radius:999px;padding:2px 8px;text-align:center;min-width:28px;box-sizing:content-box;outline:none;cursor:text}
+.blk .num{cursor:inherit;display:inline-block}
+.blk input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.9)}
+.dd{background:rgba(0,0,0,.16);border-radius:999px;padding:3px 10px}
+.rep{display:inline-flex;align-items:center;gap:4px;background:var(--c);border:1px solid var(--d);border-radius:999px;padding:2px 10px;min-height:26px}
+.bool{display:inline-flex;align-items:center;gap:5px;background:var(--c);padding:3px 16px;min-height:30px;clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,12px 100%,0 50%)}
+.bslot{display:inline-block;width:46px;height:24px;background:rgba(0,0,0,.2);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,10px 100%,0 50%)}
+.blk.running>.row{box-shadow:0 0 0 3px #FFE14D,0 0 14px 3px #FFE14D;z-index:2}
+.blk.bughint{outline:3px dashed #E5243B;outline-offset:4px;border-radius:6px}
+.ro .blk{cursor:default}
+.ro .stack{opacity:.82}
+.ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:1000;opacity:.9;filter:drop-shadow(0 6px 10px rgba(0,0,0,.3))}
+.ghost .stack{position:static}
+#insline{position:fixed;display:none;width:120px;height:6px;background:#fff;border-radius:3px;box-shadow:0 0 0 2px #5A6684,0 0 8px rgba(0,0,0,.4);z-index:999;pointer-events:none}
+#menu{position:fixed;display:none;background:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.25);padding:8px;z-index:1001;max-width:420px}
+#menu .mh{font-size:14px;color:#7C8AA8;padding:0 6px 6px}
+#menu .mi{padding:6px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px}
+#menu .mi:hover{background:#EEF3FF}
+#menu .mi.cur{background:#F4F6FC}
+#menu .mi.cur::after{content:"（現在）";color:#7C8AA8;font-size:13px}
+#menu .blk{cursor:pointer}
+
+/* ---------- modal ---------- */
+#modal{position:fixed;inset:0;background:rgba(20,26,44,.55);display:none;align-items:center;justify-content:center;z-index:2000}
+#modal.on{display:flex}
+#modal .card{min-width:420px}
+#modal input{font:inherit;font-size:22px;padding:6px 12px;border:2px solid #CBD3E6;border-radius:10px;width:240px;text-align:center}
+.lvgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0}
+.lvgrid button{background:#F4F6FC;color:#24304A;padding:8px 10px;text-align:left;font-size:16px}
+.lvgrid button:hover{background:#E1E9FF}
+.err{color:#C0392B;min-height:22px;margin-top:6px}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:1500;display:none}
+pre.selftest{position:fixed;left:10px;top:10px;right:10px;bottom:10px;overflow:auto;background:#111;color:#9f9;font-size:13px;z-index:5000;padding:10px;margin:0;white-space:pre-wrap}
+</style>
+</head>
+<body>
+
+<!-- ======== start ======== -->
+<div id="start" class="screen">
+  <div class="card">
+    <h1>🐞 抓蟲小隊</h1>
+    <div class="en">DEBUG PATROL</div>
+    <div style="font-size:20px">每一關的程式裡都躲著小蟲，找出來修好它！</div>
+    <div class="ways">
+      <div>✋ <b>拖曳搬移</b>：改變積木的順序，或拖進、拖出「重複」「如果」</div>
+      <div>🔢 <b>改數字</b>：點白色的數字框，輸入新的數字</div>
+      <div>🔄 <b>換積木</b>：點一下積木，從選單換成別的積木</div>
+      <div>📦 <b>拿新積木</b>：從左邊的積木區拖進來；拖回去就是刪除</div>
+    </div>
+    <button class="big" id="startBtn">開始抓蟲 ▶</button><br>
+    <button class="small" id="teacherBtn1">👩‍🏫 老師模式</button>
+  </div>
+</div>
+
+<!-- ======== game ======== -->
+<div id="game" class="screen">
+  <div id="top">
+    <span class="name">🐞 抓蟲小隊</span>
+    <span id="lvInfo"></span>
+    <span id="timeInfo">⏱ 00:00</span>
+    <span id="starInfo">⭐ 0</span>
+    <span class="sp"></span>
+    <button id="teacherBtn2">👩‍🏫 老師</button>
+  </div>
+  <div id="task">
+    <div id="taskText"></div>
+    <div id="bugN"></div>
+  </div>
+  <div id="main">
+    <div id="palette" class="panel">
+      <div class="ph">📦 積木區</div>
+      <div id="palbody"></div>
+      <div class="trashhint">🗑 把積木拖回這裡＝刪除</div>
+    </div>
+    <div id="prog" class="panel">
+      <div id="tabs"></div>
+      <div id="ws"><div id="wsin"></div></div>
+    </div>
+    <div id="right">
+      <div id="stage"></div>
+      <div id="btns">
+        <button id="runBtn">▶ 執行</button>
+        <button id="resetBtn">↺ 重來</button>
+        <button id="hintBtn">💡 提示</button>
+        <button id="playBtn">🎮 自己玩</button>
+        <button id="solBtn">🔑 解答</button>
+      </div>
+      <div id="fb" class="panel"><div id="hintarea"></div><div id="status"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== summary ======== -->
+<div id="summary" class="screen">
+  <div class="card">
+    <div style="font-size:22px">🎉 十關全部完成！</div>
+    <div class="sumtitle" id="sumTitle"></div>
+    <div class="muted">總時間</div>
+    <div class="sumtime" id="sumTime"></div>
+    <div class="sumstar" id="sumStar"></div>
+    <div class="sumrow" id="sumRow"></div>
+    <div style="margin:6px 0 4px">寫上你的名字，截圖給老師：</div>
+    <input id="nameIn" maxlength="12" placeholder="我的名字" autocomplete="off"><br>
+    <button class="big" id="againBtn" style="margin-top:16px">再玩一次 ↺</button>
+  </div>
+</div>
+
+<div id="modal"><div class="card" id="modalCard"></div></div>
+<div id="passPop"><div class="card">
+  <div class="good">🎉 抓到所有蟲！</div>
+  <div class="stars" id="popStars"></div>
+  <button class="next" id="popNext">下一關 ▶</button><br>
+  <button class="small" id="popStay">留在這一關看看</button>
+</div></div>
+<div id="insline"></div>
+<div id="menu"></div>
+<canvas id="fx"></canvas>
+
+<script>
+'use strict';
+/* =========================================================
+   基本工具
+   ========================================================= */
+const $=s=>document.querySelector(s);
+function h(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+function clone(o){return JSON.parse(JSON.stringify(o,(k,v)=>k==='_id'?undefined:v));}
+function inRect(el,ev){const r=el.getBoundingClientRect();return ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom;}
+function norm(d){d=((d+180)%360+360)%360-180;return d===-180?180:d;}
+const RAD=Math.PI/180;
+function fmt(ms){const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+
+/* =========================================================
+   積木定義（顏色照 Scratch 3）
+   s: hat / stack(預設) / c / c2 / capc(重複無限次) / cap / rep / bool
+   a: n 數字欄位、s 文字欄位、d 下拉、k 按鍵下拉、b 布林槽、plain 純文字
+   ========================================================= */
+const CAT={event:['#FFBF00','#CC9900'],motion:['#4C97FF','#3373CC'],looks:['#9966FF','#774DCB'],control:['#FFAB19','#CF8B17'],
+  sensing:['#5CB1D6','#2E8EB8'],operator:['#59C059','#389438'],variable:['#FF8C1A','#DB6E00'],pen:['#0FBD8C','#0B8E69']};
+const DEF={
+  whenFlag:{c:'event',s:'hat',t:''},
+  whenKey:{c:'event',s:'hat',t:'當 {key} 鍵被按下',a:{key:'k'}},
+  whenRecv:{c:'event',s:'hat',t:'當收到廣播 {msg}',a:{msg:'d'}},
+  broadcast:{c:'event',t:'廣播 {msg}',a:{msg:'d'}},
+  move:{c:'motion',t:'移動 {steps} 點',a:{steps:'n'}},
+  turnRight:{c:'motion',t:'右轉 ↻ {deg} 度',a:{deg:'n'}},
+  pointDir:{c:'motion',t:'面朝 {dir} 度',a:{dir:'n'}},
+  goto:{c:'motion',t:'移到 x: {x} y: {y}',a:{x:'n',y:'n'}},
+  gotoRandom:{c:'motion',t:'移到 下一個隨機位置'},
+  glide:{c:'motion',t:'滑行 {secs} 秒到 x: {x} y: {y}',a:{secs:'n',x:'n',y:'n'}},
+  changeX:{c:'motion',t:'x 改變 {dx}',a:{dx:'n'}},
+  changeY:{c:'motion',t:'y 改變 {dy}',a:{dy:'n'}},
+  bounce:{c:'motion',t:'碰到邊緣就反彈'},
+  sayFor:{c:'looks',t:'說 {text} 持續 {secs} 秒',a:{text:'s',secs:'n'}},
+  say:{c:'looks',t:'說 {text}',a:{text:'s'}},
+  show:{c:'looks',t:'顯示'},
+  hide:{c:'looks',t:'隱藏'},
+  costume:{c:'looks',t:'換成造型 {name}',a:{name:'d'}},
+  wait:{c:'control',t:'等待 {secs} 秒',a:{secs:'n'}},
+  repeat:{c:'control',s:'c',t:'重複 {times} 次',a:{times:'n'}},
+  forever:{c:'control',s:'capc',t:'重複無限次'},
+  if:{c:'control',s:'c',t:'如果 {cond} 那麼',a:{cond:'b'}},
+  ifElse:{c:'control',s:'c2',t:'如果 {cond} 那麼',t2:'否則',a:{cond:'b'}},
+  stopAll:{c:'control',s:'cap',t:'停止 {opt}',a:{opt:'d'}},
+  touching:{c:'sensing',s:'bool',t:'碰到 {target} ？',a:{target:'d'}},
+  keyPressed:{c:'sensing',s:'bool',t:'按下 {key} 鍵？',a:{key:'k'}},
+  gt:{c:'operator',s:'bool',t:'{a} > {b}',a:{a:'n',b:'n'}},
+  lt:{c:'operator',s:'bool',t:'{a} < {b}',a:{a:'n',b:'n'}},
+  eq:{c:'operator',s:'bool',t:'{a} = {b}',a:{a:'n',b:'n'}},
+  setVar:{c:'variable',t:'變數 {v} 設為 {val}',a:{v:'d',val:'n'}},
+  changeVar:{c:'variable',t:'變數 {v} 改變 {val}',a:{v:'d',val:'n'}},
+  varRep:{c:'variable',s:'rep',t:'{v}',a:{v:'plain'}},
+  penClear:{c:'pen',t:'筆跡全部清除'},
+  penDown:{c:'pen',t:'下筆'}
+};
+const KEYN={space:'空白',right:'右',left:'左'};
+const SPRITE_OF={'蘋果':'apple','貓':'cat','狗':'dog'};
+const shape=b=>DEF[b.op].s||'stack';
+const isCap=b=>{const s=shape(b);return s==='cap'||s==='capc';};
+const FLAG_SVG='<svg width="22" height="22" viewBox="0 0 20 20" style="flex:none"><path d="M4 2v17" stroke="#2F6B1F" stroke-width="2.2" stroke-linecap="round"/><path d="M5 3c4-2 6 2 11 0v8c-5 2-7-2-11 0z" fill="#4CBF56" stroke="#2F6B1F" stroke-width="1.2"/></svg>';
+
+/* =========================================================
+   角色美術（自繪 SVG）
+   ========================================================= */
+const SIZE={cat:[70,60],dog:[70,60],apple:[40,40]};
+const ART={
+cat:c=>`<svg viewBox="0 0 70 60" width="70" height="60">
+<path d="M12 40 C2 36 2 22 8 17" fill="none" stroke="#9A5A10" stroke-width="8" stroke-linecap="round"/>
+<path d="M12 40 C2 36 2 22 8 17" fill="none" stroke="#F7A93B" stroke-width="5" stroke-linecap="round"/>
+<g stroke="#9A5A10" stroke-width="2" stroke-linejoin="round" fill="#F7A93B">
+<rect x="15" y="44" width="8" height="13" rx="4"/><rect x="33" y="44" width="8" height="13" rx="4"/>
+<ellipse cx="28" cy="39" rx="19" ry="12"/>
+<path d="M37 17 L38 3 L48 11 Z"/><path d="M54 11 L64 4 L63 18 Z"/>
+<circle cx="51" cy="24" r="15"/></g>
+<ellipse cx="55" cy="30" rx="7" ry="5" fill="#FFE2B8"/>
+${c==='開心'
+?`<path d="M42 22 q3 -4 6 0" stroke="#2B2B2B" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M53 22 q3 -4 6 0" stroke="#2B2B2B" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<circle cx="42" cy="28" r="2.6" fill="#FF8FA3"/><circle cx="62" cy="27" r="2.6" fill="#FF8FA3"/>
+<path d="M51 30 q4 7 8 0 z" fill="#C2185B" stroke="#2B2B2B" stroke-width="1.2"/>`
+:`<ellipse cx="45" cy="21" rx="2.4" ry="3.3" fill="#2B2B2B"/><ellipse cx="56" cy="21" rx="2.4" ry="3.3" fill="#2B2B2B"/>
+<path d="M52 30 q3 2.5 6 0" stroke="#2B2B2B" stroke-width="1.5" fill="none" stroke-linecap="round"/>`}
+<path d="M54 26 h3 l-1.5 2z" fill="#E86A6A"/></svg>`,
+dog:()=>`<svg viewBox="0 0 70 60" width="70" height="60">
+<path d="M10 36 C2 30 4 22 9 20" fill="none" stroke="#6E4520" stroke-width="7" stroke-linecap="round"/>
+<g stroke="#6E4520" stroke-width="2" fill="#C68B52" stroke-linejoin="round">
+<rect x="15" y="44" width="8" height="13" rx="4"/><rect x="33" y="44" width="8" height="13" rx="4"/>
+<ellipse cx="28" cy="39" rx="19" ry="12"/>
+<circle cx="49" cy="24" r="14"/>
+<ellipse cx="60" cy="30" rx="9" ry="6"/></g>
+<ellipse cx="41" cy="24" rx="5" ry="11" fill="#7A4E26" transform="rotate(15 41 24)"/>
+<ellipse cx="51" cy="20" rx="2.4" ry="3" fill="#2B2B2B"/>
+<circle cx="67" cy="28" r="3" fill="#2B2B2B"/>
+<path d="M58 34 q4 3 7 0" stroke="#2B2B2B" stroke-width="1.5" fill="none"/></svg>`,
+apple:()=>`<svg viewBox="0 0 40 40" width="40" height="40">
+<path d="M20 11 q1 -6 5 -8" stroke="#6B3E1E" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+<path d="M22 9 q8 -7 14 -1 q-7 6 -14 1z" fill="#4CAF50" stroke="#2E7D32" stroke-width="1"/>
+<circle cx="20" cy="24" r="14" fill="#E8333A" stroke="#A51F25" stroke-width="2"/>
+<ellipse cx="14" cy="19" rx="3" ry="5" fill="#fff" opacity=".45"/></svg>`
+};
+
+/* =========================================================
+   關卡資料
+   make(f)：f.A / f.B / f.C 代表「這隻蟲已修好」。make({}) 就是有蟲的版本。
+   ========================================================= */
+const B=(op,args,o)=>Object.assign({op,args:args||{}},o||{});
+const S=(x,y,...blocks)=>({x,y,blocks});
+const V=n=>B('varRep',{v:n});
+const APPLE={label:'🍎 蘋果',kind:'apple',x:80,y:0,r:18,ro:true,seq:[[-120,0],[160,0],[-60,0],[80,0]]};
+const snapAt=(rt,t)=>rt.snaps.find(s=>s.t>=t-1e-9)||rt.snaps[rt.snaps.length-1];
+const numSays=rt=>rt.ev.filter(e=>e.type==='say'&&e.sprite==='cat'&&String(e.text).trim()!==''&&isFinite(Number(e.text)));
+
+const LEVELS=[
+/* 1 */{title:'到站廣播',task:'貓咪從左邊走到右邊，說「到了！」，說完才消失。',
+ sprites:{cat:{label:'🐱 貓',kind:'cat',x:-150,y:0}},
+ make:f=>({cat:[S(24,26,B('whenFlag'),B('show'),B('goto',{x:-150,y:0}),B('glide',{secs:1,x:150,y:0}),
+   ...(f.A?[B('sayFor',{text:'到了！',secs:2}),B('hide',{},{bug:1})]:[B('hide',{},{bug:1}),B('sayFor',{text:'到了！',secs:2})]))]}),
+ bugs:[{n:'A',check:rt=>{
+   const E=rt.ev,s=E.find(e=>e.type==='say'&&e.text==='到了！');
+   if(!s) return '貓咪沒有說「到了！」喔';
+   if(!s.visible) return '貓咪還沒開口就先消失了，看不到它說「到了！」';
+   const end=E.find(e=>e.type==='sayEnd'&&e.i>s.i)||s;
+   if(E.some(e=>e.type==='hide'&&e.i>s.i&&e.i<end.i)) return '貓咪話還沒說完就消失了';
+   if(!E.some(e=>e.type==='hide'&&e.i>=end.i)) return '說完「到了！」之後，貓咪要消失喔';
+   return true;}}],
+ hint:'貓咪還沒開口就先消失了，誰應該先做？'},
+
+/* 2 */{title:'畫長方形',task:'畫一個長 100、寬 50 的長方形。',
+ sprites:{cat:{label:'🐱 貓',kind:'cat',x:0,y:0}},
+ make:f=>({cat:[S(24,26,B('whenFlag'),B('penClear'),B('goto',{x:0,y:0}),B('pointDir',{dir:90}),B('penDown'),
+   B('repeat',{times:2},{body:[B('move',{steps:100}),B('turnRight',{deg:90}),B('move',{steps:50}),B('turnRight',{deg:f.A?90:60},{bug:1})]}))]}),
+ bugs:[{n:'A',check:rt=>{
+   const g=rt.segs.filter(s=>Math.hypot(s[2]-s[0],s[3]-s[1])>0.5);
+   if(g.length!==4) return `畫出來的線有 ${g.length} 條，長方形應該要剛好 4 條邊`;
+   const len=g.map(s=>Math.hypot(s[2]-s[0],s[3]-s[1])),want=[100,50,100,50];
+   if(len.some((l,i)=>Math.abs(l-want[i])>1)) return '邊的長度不對：長方形的四條邊應該是 100、50、100、50';
+   for(let i=0;i<3;i++){const a1=Math.atan2(g[i][3]-g[i][1],g[i][2]-g[i][0])/RAD,a2=Math.atan2(g[i+1][3]-g[i+1][1],g[i+1][2]-g[i+1][0])/RAD;
+     if(Math.abs(Math.abs(norm(a2-a1))-90)>0.5) return '有一個轉角不是直角，長方形畫歪了';}
+   if(Math.hypot(g[3][2]-g[0][0],g[3][3]-g[0][1])>1) return '最後一條線沒有回到起點，長方形沒有封起來';
+   return true;}}],
+ hint:'長方形的四個角都是直角，每個角要轉幾度？'},
+
+/* 3 */{title:'跳跳貓',task:'按空白鍵，貓咪跳起來再落回原位。',
+ sprites:{cat:{label:'🐱 貓',kind:'cat',x:0,y:0}},bg:'ground',maxRun:3,
+ keys:[{key:'space',down:0.5,up:0.6}],keyDesc:'自動測試：第 0.5 秒按一次空白鍵',
+ make:f=>({cat:[S(24,26,B('whenKey',{key:'space'}),B('changeY',{dy:50}),B('wait',{secs:0.3}),B('changeY',{dy:f.A?-50:50},{bug:1}))]}),
+ bugs:[{n:'A',check:rt=>{
+   const mx=Math.max(...rt.snaps.map(s=>s.sp.cat.y)),y=rt.sp.cat.y;
+   if(mx<49) return '貓咪沒有跳起來喔';
+   if(Math.abs(y)>0.5) return y>0?'貓咪最後停在半空中，沒有回到地面喔':'貓咪掉到地面底下去了';
+   return true;}}],
+ hint:'往上跳是 +50，掉下來應該是多少？'},
+
+/* 4 */{title:'來回跑',task:'貓咪一直往前跑，碰到邊緣就反彈，不停地來回跑。',
+ sprites:{cat:{label:'🐱 貓',kind:'cat',x:0,y:0}},
+ make:f=>({cat:[S(24,26,B('whenFlag'),B('goto',{x:0,y:0}),B('pointDir',{dir:90}),...(f.A?[]:[B('bounce',{},{bug:1})]),
+   B('forever',{},{body:[B('move',{steps:10}),...(f.A?[B('bounce',{},{bug:1})]:[])]}))]}),
+ bugs:[{n:'A',check:rt=>{
+   if(rt.snaps.some(s=>Math.abs(s.sp.cat.x)>240)) return '貓咪跑出舞台就不回來了，碰到邊緣沒有反彈';
+   let ch=0;for(let i=1;i<rt.snaps.length;i++) if(Math.abs(rt.snaps[i].sp.cat.dir-rt.snaps[i-1].sp.cat.dir)>0.01) ch++;
+   if(ch<2) return '貓咪沒有來回跑，方向都沒有改變';
+   return true;}}],
+ hint:'迴圈外面的積木只會執行一次，反彈應該要一直檢查才對。'},
+
+/* 5 */{title:'吃蘋果',task:'貓咪來回跑，每碰到蘋果一次，分數加 1，蘋果再換到別的地方。',
+ sprites:{cat:{label:'🐱 貓',kind:'cat',x:0,y:0},apple:APPLE},vars:{'分數':0},monitors:['分數'],
+ replace:{r:[{op:'setVar',keep:1},{op:'changeVar',keep:1}]},
+ make:f=>({cat:[S(20,26,B('whenFlag'),B('setVar',{v:'分數',val:0}),B('goto',{x:0,y:0}),B('pointDir',{dir:90}),
+   B('forever',{},{body:[B('move',{steps:10}),B('bounce'),B('if',{cond:B('touching',{target:'蘋果'})},{body:[
+     B(f.A?'changeVar':'setVar',{v:'分數',val:1},{bug:1,rk:'r'}),B('broadcast',{msg:'蘋果換位置'})]})]}))],
+   apple:[S(20,26,B('whenRecv',{msg:'蘋果換位置'}),B('gotoRandom'))]}),
+ bugs:[{n:'A',check:rt=>{
+   const n=rt.ev.filter(e=>e.type==='broadcast'&&e.msg==='蘋果換位置').length,s=Number(rt.vars['分數']);
+   if(n<3) return `貓咪只碰到 ${n} 次蘋果，次數太少了`;
+   if(s!==n) return `貓咪碰到 ${n} 次蘋果，分數卻是 ${s} 分`;
+   return true;}}],
+ hint:'「設為 1」每次都把分數變回 1，想要一直往上加要用哪個積木？（點一下那塊積木試試看）'},
+
+/* 6 */{title:'左右移動',task:'按右鍵貓咪往右走，按左鍵往左走。',
+ sprites:{cat:{label:'🐱 貓',kind:'cat',x:0,y:0}},maxRun:4,
+ keys:[{key:'right',down:0.5,up:1.5},{key:'left',down:2,up:3}],keyDesc:'自動測試：0.5～1.5 秒按住右鍵，2～3 秒按住左鍵',
+ make:f=>({cat:[S(24,26,B('whenFlag'),B('goto',{x:0,y:0}),B('forever',{},{body:[
+   B('if',{cond:B('keyPressed',{key:'right'})},{body:[B('changeX',{dx:10})]}),
+   B('if',{cond:B('keyPressed',{key:'left'})},{body:[B('changeX',{dx:f.A?-10:10},{bug:1})]})]}))]}),
+ bugs:[{n:'A',check:rt=>{
+   const x=t=>snapAt(rt,t).sp.cat.x,r=x(1.5)-x(0.5),l=x(3)-x(2);
+   if(r<50) return '按右鍵的時候，貓咪沒有往右走';
+   if(l>-50) return l>0?'按左鍵的時候，貓咪還是往右走':'按左鍵的時候，貓咪沒有往左走';
+   return true;}}],
+ hint:'往右是 x 變大，往左應該是 x 變大還是變小？'},
+
+/* 7 */{title:'等我說出發',task:'貓咪先說「出發！」，說完狗狗才開始跑。',
+ sprites:{cat:{label:'🐱 貓',kind:'cat',x:-150,y:60},dog:{label:'🐶 狗',kind:'dog',x:-150,y:-80}},maxRun:5,
+ replace:{h:[{op:'whenFlag',args:{}},{op:'whenRecv',args:{msg:'出發'}},{op:'whenKey',args:{key:'space'}}]},
+ make:f=>({cat:[S(24,26,B('whenFlag'),B('sayFor',{text:'出發！',secs:1}),B('broadcast',{msg:'出發'}))],
+   dog:[S(24,26,f.A?B('whenRecv',{msg:'出發'},{bug:1,rk:'h'}):B('whenFlag',{},{bug:1,rk:'h'}),B('goto',{x:-150,y:-80}),B('glide',{secs:2,x:150,y:-80}))]}),
+ bugs:[{n:'A',check:rt=>{
+   const end=rt.ev.find(e=>e.type==='sayEnd'&&e.sprite==='cat');
+   const mv=rt.snaps.find(s=>Math.abs(s.sp.dog.x+150)>0.01||Math.abs(s.sp.dog.y+80)>0.01);
+   if(!mv) return '狗狗都沒有動，它沒收到開跑的訊號';
+   if(!end||mv.t<end.t-1e-6) return '狗狗沒等貓咪說完「出發！」就先跑了';
+   if(Math.abs(rt.sp.dog.x-150)>1) return '狗狗沒有跑到終點';
+   return true;}}],
+ hint:'狗狗一按綠旗就跑了，它應該要等誰的訊號？（切到 🐶 狗 的分頁，點一下最上面的積木）'},
+
+/* 8 */{title:'倒數計時',task:'從 10 開始，每秒倒數一次，數到 1 之後說「時間到！」。',
+ sprites:{cat:{label:'🐱 貓',kind:'cat',x:0,y:-20}},vars:{'時間':10},monitors:['時間'],maxRun:13,
+ palette:[B('wait',{secs:1}),B('wait',{secs:0.1}),B('say',{text:'Hello'})],
+ make:f=>({cat:[S(24,26,B('whenFlag'),B('setVar',{v:'時間',val:10}),
+   B('repeat',{times:10},{bug:1,body:[B('say',{text:V('時間')}),...(f.B?[B('wait',{secs:1})]:[]),B('changeVar',{v:'時間',val:f.A?-1:1},{bug:1})]}),
+   B('say',{text:'時間到！'}))]}),
+ bugs:[
+  {n:'A',check:rt=>{const nums=numSays(rt).map(e=>Number(e.text)),want=[10,9,8,7,6,5,4,3,2,1];
+    if(nums.length===10&&nums.every((v,i)=>v===want[i])) return true;
+    return nums.length>1&&nums[1]>nums[0]?'數字越數越大了，倒數應該越來越小':'說出來的數字不是 10、9、8……1';}},
+  {n:'B',check:rt=>{const ss=numSays(rt);if(ss.length<2) return '倒數的數字太少了';
+    for(let i=1;i<ss.length;i++){const dt=ss[i].t-ss[i-1].t;if(dt<0.9) return '一眨眼就數完了，每個數字之間要停 1 秒';if(dt>1.1) return '數字之間停太久了，要剛好 1 秒';}
+    return true;}}],
+ hint:'有兩隻蟲：一隻讓數字越數越大，另一隻讓它一眨眼就數完了。'},
+
+/* 9 */{title:'過關判定',task:'分數 <b>5 分以上</b>說「過關！」，否則說「再加油」。',
+ note:'小提醒：Scratch 沒有「≥」積木，所以「5 分以上」可以寫成「分數 > 4」。',
+ sprites:{cat:{label:'🐱 貓',kind:'cat',x:0,y:-30}},vars:{'分數':0},monitors:['分數'],
+ runs:[3,4,5,6,10].map(v=>({vars:{'分數':v},label:'分數＝'+v})),keyDesc:'自動測試：分數＝3、4、5、6、10 各跑一次',
+ replace:{op:[{op:'gt',keep:1},{op:'lt',keep:1},{op:'eq',keep:1}],
+   say:[{op:'sayFor',args:{text:'過關！'},keep:1},{op:'sayFor',args:{text:'再加油'},keep:1}]},
+ make:f=>({cat:[S(24,26,B('whenFlag'),B('ifElse',{cond:B('gt',{a:V('分數'),b:f.A?4:5},{rk:'op'})},{bug:1,
+   body:[B('sayFor',{text:f.B?'過關！':'再加油',secs:2},{rk:'say'})],
+   body2:[B('sayFor',{text:f.B?'再加油':'過關！',secs:2},{rk:'say'})]}))]}),
+ alts:[()=>({cat:[S(24,26,B('whenFlag'),B('ifElse',{cond:B('lt',{a:V('分數'),b:5},{rk:'op'})},{
+   body:[B('sayFor',{text:'再加油',secs:2},{rk:'say'})],body2:[B('sayFor',{text:'過關！',secs:2},{rk:'say'})]}))]})],
+ bugs:[
+  {n:'A',check:rts=>{const r=rts.map(rt=>(rt.ev.find(e=>e.type==='say')||{}).text);
+    return r[2]!==r[1]?true:'拿 5 分和拿 4 分的結果一樣，分界點不對喔';}},
+  {n:'B',check:rts=>{const r=rts.map(rt=>(rt.ev.find(e=>e.type==='say')||{}).text);
+    if(r[3]!=='過關！'||r[4]!=='過關！') return '分數很高的同學（6 分、10 分）聽到的不是「過關！」';
+    if(r[0]!=='再加油') return '只拿 3 分的同學應該聽到「再加油」';
+    return true;}}],
+ hint:'拿 5 分的同學有沒有過關？過關的人聽到的是哪一句？（數字、綠色的比較積木、紫色的說話積木都可以點）'},
+
+/* 10 */{title:'蘋果大挑戰',task:'每次開始分數都從 0 算，貓咪來回跑吃蘋果，吃到 3 個就換成開心的造型，然後全部停止。',
+ sprites:{cat:{label:'🐱 貓',kind:'cat',x:0,y:0},apple:APPLE},vars:{'分數':2},monitors:['分數'],
+ palette:[B('setVar',{v:'分數',val:0}),B('changeVar',{v:'分數',val:1}),B('wait',{secs:1})],
+ expectN:f=>(f.A?1:0)+(f.B?1:0)+(f.B&&f.C?1:0),
+ make:f=>{
+   const stop=f.C?[B('costume',{name:'開心'}),B('stopAll',{opt:'全部'},{bug:1})]:[B('stopAll',{opt:'全部'},{bug:1}),B('costume',{name:'開心'})];
+   const ifStop=B('if',{cond:B('eq',{a:V('分數'),b:3})},{bug:1,body:stop});
+   const main=S(14,15,B('whenFlag',{},{bug:1}),...(f.A?[B('setVar',{v:'分數',val:0})]:[]),B('costume',{name:'普通'}),B('goto',{x:0,y:0}),B('pointDir',{dir:90}),
+     B('forever',{},{body:[B('move',{steps:10}),B('bounce'),B('if',{cond:B('touching',{target:'蘋果'})},{body:[B('changeVar',{v:'分數',val:1}),B('broadcast',{msg:'蘋果換位置'})]}),...(f.B?[ifStop]:[])]}));
+   return {cat:f.B?[main]:[main,S(330,372,ifStop)],apple:[S(20,26,B('whenRecv',{msg:'蘋果換位置'}),B('gotoRandom'))]};},
+ bugs:[
+  {n:'A',check:rt=>Number(rt.snaps[0]&&rt.snaps[0].vars['分數'])===0?true:`一開始分數是 ${rt.snaps[0]?rt.snaps[0].vars['分數']:'?'}，沒有歸零喔`},
+  {n:'B',check:rt=>{const s3=rt.snaps.find(s=>Number(s.vars['分數'])>=3);if(!s3) return '分數一直沒有到 3 分';
+    const st=rt.ev.find(e=>e.type==='stop');
+    if(!st||st.t-s3.t>0.1) return '分數到 3 分了，貓咪還在跑，程式沒有停下來';
+    return true;}},
+  {n:'C',check:rt=>{if(!rt.stopped) return '要先讓程式在 3 分時停下來，才看得出造型有沒有換';
+    return rt.sp.cat.costume==='開心'?true:'程式停下來的時候，貓咪還是普通的造型';}}],
+ hint:'有三隻蟲：分數有沒有歸零？檢查「3 分」的積木有沒有一直被執行？停止之後還有機會換造型嗎？'}
+];
+
+/* =========================================================
+   直譯器：generator 執行緒，每 tick = 1/30 秒
+   ========================================================= */
+class RT{
+  constructor(L,code,o={}){
+    this.L=L;this.code=code;this.tick=0;this.t=0;this.th=[];this.ev=[];this.segs=[];this.snaps=[];this.clears=0;this.stopped=false;
+    this.max=o.max||L.maxRun||8;this.keys=o.keys||[];this.live=!!o.live;this.down=new Set();
+    this.vars=Object.assign({},L.vars||{},o.vars||{});
+    this.sp={};
+    for(const [n,s] of Object.entries(L.sprites)) this.sp[n]={name:n,kind:s.kind,x:s.x||0,y:s.y||0,dir:s.dir!=null?s.dir:90,
+      visible:s.visible!==false,costume:s.costume||'普通',r:s.r||30,seq:s.seq||null,ri:0,say:null,pen:false};
+    this.hats(b=>b.op==='whenFlag');
+  }
+  hats(test){for(const n of Object.keys(this.code)) for(const st of this.code[n].stacks){const b=st.blocks[0];if(b&&test(b)) this.spawn(n,st.blocks);}}
+  spawn(n,blocks){for(const t of this.th) if(t.blocks===blocks) t.done=true;
+    const th={name:n,sp:this.sp[n],blocks,cur:blocks[0],done:false};th.gen=this.runList(th,blocks.slice(1));this.th.push(th);}
+  emit(type,o){this.ev.push(Object.assign({type,t:this.t,i:this.ev.length},o||{}));}
+  broadcast(msg){this.emit('broadcast',{msg});this.hats(b=>b.op==='whenRecv'&&b.args.msg===msg);}
+  fireKey(k){this.hats(b=>b.op==='whenKey'&&b.args.key===k);}
+  step(){
+    if(!this.live){const nd=new Set();for(const k of this.keys) if(this.t>=k.down-1e-9&&this.t<k.up-1e-9) nd.add(k.key);
+      for(const k of nd) if(!this.down.has(k)) this.fireKey(k);this.down=nd;}
+    for(let i=0;i<this.th.length&&!this.stopped;i++){const th=this.th[i];if(th.done) continue;const r=th.gen.next();if(r.done) th.done=true;}
+    if(this.stopped) this.th.forEach(t=>t.done=true);
+    this.th=this.th.filter(t=>!t.done);
+    this.snaps.push({t:this.t,sp:Object.fromEntries(Object.entries(this.sp).map(([n,s])=>[n,{x:s.x,y:s.y,dir:s.dir,visible:s.visible,costume:s.costume}])),vars:Object.assign({},this.vars)});
+    this.tick++;this.t=this.tick/30;
+  }
+  finished(){return this.stopped||this.t>=this.max-1e-9||(!this.live&&this.th.length===0&&!this.keys.some(k=>k.down>=this.t-1e-9));}
+  val(v){if(v&&typeof v==='object'){if(v.op==='varRep') return this.vars[v.args.v]!=null?this.vars[v.args.v]:0;return this.bool(v)?'true':'false';}return v==null?'':v;}
+  num(v){const n=Number(String(this.val(v)).trim());return isFinite(n)?n:0;}
+  cmp(a,b){const x=this.val(a),y=this.val(b),nx=Number(x),ny=Number(y);
+    if(String(x).trim()!==''&&String(y).trim()!==''&&isFinite(nx)&&isFinite(ny)) return nx-ny;
+    const sx=String(x).toLowerCase(),sy=String(y).toLowerCase();return sx<sy?-1:sx>sy?1:0;}
+  bool(c,sp){if(!c||typeof c!=='object') return false;const A=c.args;
+    switch(c.op){case 'gt':return this.cmp(A.a,A.b)>0;case 'lt':return this.cmp(A.a,A.b)<0;case 'eq':return this.cmp(A.a,A.b)===0;
+      case 'touching':return this.touch(sp,this.sp[SPRITE_OF[A.target]]);case 'keyPressed':return this.down.has(A.key);}return false;}
+  touch(a,b){if(!a||!b||a===b||!a.visible||!b.visible) return false;return Math.hypot(a.x-b.x,a.y-b.y)<(a.r+b.r)*0.75;}
+  moveTo(sp,x,y){x=Math.round(x*1e6)/1e6;y=Math.round(y*1e6)/1e6;if(sp.pen&&(x!==sp.x||y!==sp.y)) this.segs.push([sp.x,sp.y,x,y]);sp.x=x;sp.y=y;}
+  bounce(sp){const r=sp.r;let dx=Math.sin(sp.dir*RAD),dy=Math.cos(sp.dir*RAD),ch=false;
+    if(sp.x+r>240){sp.x=240-r;dx=-Math.abs(dx);ch=true;}else if(sp.x-r<-240){sp.x=-240+r;dx=Math.abs(dx);ch=true;}
+    if(sp.y+r>180){sp.y=180-r;dy=-Math.abs(dy);ch=true;}else if(sp.y-r<-180){sp.y=-180+r;dy=Math.abs(dy);ch=true;}
+    if(ch) sp.dir=Math.round(norm(Math.atan2(dx,dy)/RAD)*1e6)/1e6;}
+  *wait(s){const end=this.t+s;do{yield;}while(this.t<end-1e-9);}
+  *runList(th,list){for(const b of list) yield* this.exec(th,b);}
+  *exec(th,b){
+    th.cur=b;const sp=th.sp,A=b.args||{};
+    switch(b.op){
+      case 'move':{const n=this.num(A.steps);this.moveTo(sp,sp.x+n*Math.sin(sp.dir*RAD),sp.y+n*Math.cos(sp.dir*RAD));break;}
+      case 'turnRight':sp.dir=norm(sp.dir+this.num(A.deg));break;
+      case 'pointDir':sp.dir=norm(this.num(A.dir));break;
+      case 'goto':this.moveTo(sp,this.num(A.x),this.num(A.y));break;
+      case 'gotoRandom':if(sp.seq){const p=sp.seq[sp.ri++%sp.seq.length];this.moveTo(sp,p[0],p[1]);}break;
+      case 'glide':{const secs=this.num(A.secs),x0=sp.x,y0=sp.y,x1=this.num(A.x),y1=this.num(A.y),t0=this.t;
+        if(secs<=0){this.moveTo(sp,x1,y1);break;}
+        for(;;){yield;const f=Math.min(1,(this.t-t0)/secs);this.moveTo(sp,x0+(x1-x0)*f,y0+(y1-y0)*f);if(f>=1-1e-9)break;}break;}
+      case 'changeX':this.moveTo(sp,sp.x+this.num(A.dx),sp.y);break;
+      case 'changeY':this.moveTo(sp,sp.x,sp.y+this.num(A.dy));break;
+      case 'bounce':this.bounce(sp);break;
+      case 'sayFor':{const text=String(this.val(A.text)),id={};sp.say={text,id};this.emit('say',{sprite:th.name,text,visible:sp.visible});
+        yield* this.wait(this.num(A.secs));if(sp.say&&sp.say.id===id) sp.say=null;this.emit('sayEnd',{sprite:th.name,text});break;}
+      case 'say':{const text=String(this.val(A.text));sp.say=text===''?null:{text,id:{}};this.emit('say',{sprite:th.name,text,visible:sp.visible});break;}
+      case 'show':sp.visible=true;this.emit('show',{sprite:th.name});break;
+      case 'hide':sp.visible=false;this.emit('hide',{sprite:th.name});break;
+      case 'costume':sp.costume=A.name;this.emit('costume',{sprite:th.name,name:A.name});break;
+      case 'wait':yield* this.wait(this.num(A.secs));break;
+      case 'repeat':{const n=Math.round(this.num(A.times));for(let i=0;i<n;i++){yield* this.runList(th,b.body||[]);th.cur=b;yield;}break;}
+      case 'forever':for(;;){yield* this.runList(th,b.body||[]);th.cur=b;yield;}
+      case 'if':if(this.bool(A.cond,sp)) yield* this.runList(th,b.body||[]);break;
+      case 'ifElse':yield* this.runList(th,this.bool(A.cond,sp)?(b.body||[]):(b.body2||[]));break;
+      case 'stopAll':this.stopped=true;this.emit('stop');yield;break;
+      case 'broadcast':this.broadcast(A.msg);break;
+      case 'setVar':this.vars[A.v]=this.num(A.val);break;
+      case 'changeVar':this.vars[A.v]=this.num(this.vars[A.v])+this.num(A.val);break;
+      case 'penClear':this.segs=[];this.clears++;break;
+      case 'penDown':sp.pen=true;break;
+    }
+  }
+}
+
+function buildCode(L,raw){const code={};for(const n of Object.keys(L.sprites)) code[n]={stacks:clone(raw[n]||[]),ro:!!L.sprites[n].ro};return code;}
+function judge(L,code){
+  const runs=L.runs||[{}];
+  const rts=runs.map(o=>{const rt=new RT(L,code,Object.assign({keys:L.keys||[]},o));let g=0;while(!rt.finished()&&g++<20000) rt.step();return rt;});
+  const results=L.bugs.map(bg=>{let r;try{r=bg.check(L.runs?rts:rts[0]);}catch(e){console.error(e);r='程式好像怪怪的，檢查看看積木有沒有接好';}return r===true?{ok:true}:{ok:false,msg:r};});
+  const caught=results.filter(r=>r.ok).length;
+  return {results,caught,total:L.bugs.length,all:caught===L.bugs.length};
+}
+
+/* =========================================================
+   遊戲狀態與存檔
+   ========================================================= */
+const KEY='debugPatrol.v1';
+function fresh(){return {v:1,level:0,stars:Array(10).fill(0),hints:Array(10).fill(0),elapsed:0,started:false,done:false};}
+function loadState(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.v===1&&Array.isArray(s.stars)) return s;}catch(e){}return null;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+let state=loadState()||fresh();
+let cur=0,L=null,code=null,active='cat',teacher=false;
+let idMap={},lists=[],running=null,anim=null,D=null;
+let UID=0;
+
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));}
+
+/* =========================================================
+   積木渲染
+   ========================================================= */
+function setColor(el,c){el.style.setProperty('--c',CAT[c][0]);el.style.setProperty('--d',CAT[c][1]);}
+function newCtx(o){return Object.assign({idMap:{},lists:[],edit:false,interactive:false,hint:false},o);}
+function sizeInput(i){let n=0;for(const ch of i.value) n+=ch.charCodeAt(0)>255?1.9:1;i.style.width=Math.max(1,n+0.3)+'ch';}
+function makeInput(b,k,ty,ctx){
+  const v=b.args[k]!=null?b.args[k]:'';
+  if(!ctx.edit) return h('span','num',String(v));
+  const i=document.createElement('input');i.value=String(v);i.spellcheck=false;i.autocomplete='off';
+  if(ty==='n') i.inputMode='decimal';
+  sizeInput(i);
+  i.addEventListener('input',()=>{b.args[k]=i.value;sizeInput(i);});
+  i.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter') i.blur();});
+  return i;
+}
+function fillLabel(row,b,ctx){
+  const d=DEF[b.op];
+  if(b.op==='whenFlag'){row.append(h('span','lbl','當'));row.insertAdjacentHTML('beforeend',FLAG_SVG);row.append(h('span','lbl','被點擊'));return;}
+  for(const part of d.t.split(/(\{\w+\})/)){
+    if(!part) continue;
+    const m=part.match(/^\{(\w+)\}$/);
+    if(!m){const s=part.trim();if(s) row.append(h('span','lbl',s));continue;}
+    const k=m[1],ty=d.a[k],v=b.args[k];
+    if(v&&typeof v==='object'){row.append(renderRep(v,ctx));continue;}
+    if(ty==='b'){row.append(h('span','bslot'));continue;}
+    if(ty==='n'||ty==='s'){row.append(makeInput(b,k,ty,ctx));continue;}
+    if(ty==='plain'){row.append(h('span','lbl',String(v)));continue;}
+    row.append(h('span','dd',(ty==='k'?(KEYN[v]||v):v)+' ▾'));
+  }
+}
+function renderRep(b,ctx){const d=DEF[b.op];const e=h('span',d.s==='bool'?'bool':'rep');setColor(e,d.c);e._blk=b;fillLabel(e,b,ctx);return e;}
+function renderBlock(b,ctx){
+  const d=DEF[b.op],sh=d.s||'stack';
+  if(sh==='rep'||sh==='bool') return renderRep(b,ctx);
+  if(!b._id) b._id='b'+(++UID);
+  const el=h('div','blk '+sh);setColor(el,d.c);el._blk=b;el.dataset.id=b._id;ctx.idMap[b._id]=el;
+  if(b.bug&&ctx.hint) el.classList.add('bughint');
+  const row=h('div','row');fillLabel(row,b,ctx);el.appendChild(row);
+  if(sh==='c'||sh==='c2'||sh==='capc'){
+    row.classList.add('tailc');
+    el.appendChild(renderBody(b,'body',ctx));
+    if(sh==='c2'){const m=h('div','row mid tailc',d.t2);el.appendChild(m);el.appendChild(renderBody(b,'body2',ctx));}
+    const ft=h('div','cfoot');if(sh!=='capc') ft.classList.add('tail');el.appendChild(ft);
+  }else if(sh!=='cap') row.classList.add('tail');
+  if(ctx.interactive) el.addEventListener('pointerdown',onBlockDown);
+  return el;
+}
+function renderBody(b,key,ctx){if(!b[key]) b[key]=[];const c=h('div','cbody');renderList(b[key],c,ctx,false);return c;}
+function renderList(arr,cont,ctx,top){arr.forEach((b,i)=>{const e=renderBlock(b,ctx);e._ref={arr,idx:i};cont.appendChild(e);});ctx.lists.push({arr,el:cont,top});}
+
+function renderProgram(){
+  renderTabs();
+  const wsin=$('#wsin');wsin.innerHTML='';
+  const sc=code[active],ro=sc.ro;
+  const ctx=newCtx({edit:!ro,interactive:!ro,hint:state.hints[cur]>=1});
+  $('#ws').classList.toggle('ro',ro);
+  if(ro){const tag=h('div',null,'🔒 這個角色的程式只能看，不能改');tag.id='roTag';wsin.appendChild(tag);}
+  let W=0,H=0;
+  for(const st of sc.stacks){const se=h('div','stack');se.style.left=st.x+'px';se.style.top=st.y+'px';renderList(st.blocks,se,ctx,true);wsin.appendChild(se);
+    W=Math.max(W,st.x+se.offsetWidth);H=Math.max(H,st.y+se.offsetHeight);}
+  wsin.style.width=(W+4)+'px';wsin.style.height=(H+4)+'px';
+  idMap=ctx.idMap;lists=ctx.lists;
+}
+function renderTabs(){
+  const t=$('#tabs');t.innerHTML='';
+  const names=Object.keys(L.sprites).filter(n=>code[n].stacks.length);
+  if(names.length<2) return;
+  for(const n of names){const b=h('button',n===active?'on':'',L.sprites[n].label+(L.sprites[n].ro?' 🔒':''));
+    b.onclick=()=>{if(running) return;active=n;closeMenu();renderProgram();};t.appendChild(b);}
+}
+function renderPalette(){
+  const pb=$('#palbody');pb.innerHTML='';
+  if(!L.palette){pb.appendChild(h('div','palmsg','這一關不需要新積木。\n\n想刪掉程式區的積木，就把它拖到這裡。'));pb.firstChild.style.whiteSpace='pre-line';return;}
+  const ctx=newCtx({interactive:true});
+  for(const tpl of L.palette){const e=renderBlock(clone(tpl),ctx);e._palette=tpl;e._ref=null;pb.appendChild(e);}
+}
+
+/* =========================================================
+   拖曳、點擊、換積木選單
+   ========================================================= */
+function onBlockDown(e){
+  if(e.button!==0||running) return;
+  if(e.target.closest('input')) return;
+  e.stopPropagation();e.preventDefault();closeMenu();
+  if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
+  const st={el:e.currentTarget,x:e.clientX,y:e.clientY,target:e.target,drag:false};
+  const mv=ev=>{if(!st.drag&&Math.hypot(ev.clientX-st.x,ev.clientY-st.y)>5){st.drag=true;startDrag(st);}if(st.drag) moveDrag(ev);};
+  const up=ev=>{document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);if(st.drag) endDrag(ev);else clickBlock(st,ev);};
+  document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);
+}
+function startDrag(st){
+  const el=st.el,r=el.getBoundingClientRect();let blocks,origin=null;
+  if(el._palette) blocks=[clone(el._palette)];
+  else{const {arr,idx}=el._ref;blocks=arr.splice(idx);origin={arr,idx};}
+  D={blocks,origin,ox:st.x-r.left,oy:st.y-r.top,target:null};
+  renderProgram();
+  const g=h('div','ghost'),se=h('div','stack');renderList(blocks,se,newCtx({}),true);g.appendChild(se);document.body.appendChild(g);
+  g.style.transformOrigin='0 0';g.style.transform=`translate(${r.left}px,${r.top}px) scale(${SCALE})`;
+  D.ghost=g;D.gh=se.offsetHeight*SCALE;D.targets=computeTargets();
+}
+function computeTargets(){
+  const T=[];if(code[active].ro) return T;
+  const first=D.blocks[0],last=D.blocks[D.blocks.length-1],fHat=shape(first)==='hat',lCap=isCap(last);
+  for(const Ls of lists){
+    const kids=[...Ls.el.children].filter(c=>c.classList.contains('blk')),arr=Ls.arr;
+    for(let i=0;i<=arr.length;i++){
+      if(i>0&&isCap(arr[i-1])) continue;
+      if(lCap&&i<arr.length) continue;
+      if(Ls.top&&i===0){if(!arr.length||shape(arr[0])==='hat') continue;const r=kids[0].getBoundingClientRect();T.push({arr,i,px:r.left,py:r.top-D.gh,lx:r.left,ly:r.top});continue;}
+      if(fHat) continue;
+      if(i===0){const r=Ls.el.getBoundingClientRect(),o=16*SCALE;T.push({arr,i,px:r.left+o,py:r.top,lx:r.left+o,ly:r.top});continue;}
+      const r=kids[i-1].getBoundingClientRect();T.push({arr,i,px:r.left,py:r.bottom,lx:r.left,ly:r.bottom});
+    }
+  }
+  return T;
+}
+function moveDrag(ev){
+  const gx=ev.clientX-D.ox,gy=ev.clientY-D.oy;D.ghost.style.transform=`translate(${gx}px,${gy}px) scale(${SCALE})`;
+  let best=null,bd=34;for(const t of D.targets){const d=Math.hypot(t.px-gx,t.py-gy);if(d<bd){bd=d;best=t;}}
+  D.target=best;const ln=$('#insline');
+  if(best){ln.style.display='block';ln.style.left=best.lx+'px';ln.style.top=(best.ly-3)+'px';}else ln.style.display='none';
+  $('#palette').classList.toggle('trash',!best&&inRect($('#palette'),ev));
+}
+function endDrag(ev){
+  D.ghost.remove();$('#insline').style.display='none';$('#palette').classList.remove('trash');
+  const t=D.target,sc=code[active];
+  if(t) t.arr.splice(t.i,0,...D.blocks);
+  else if(inRect($('#palette'),ev)){/* 拖回積木區＝刪除 */}
+  else if(inRect($('#ws'),ev)&&!sc.ro){const ws=$('#ws'),wr=ws.getBoundingClientRect();
+    sc.stacks.push({x:Math.round(Math.max(4,(ev.clientX-D.ox-wr.left)/SCALE+ws.scrollLeft)),y:Math.round(Math.max(18,(ev.clientY-D.oy-wr.top)/SCALE+ws.scrollTop)),blocks:D.blocks});}
+  else if(D.origin) D.origin.arr.splice(D.origin.idx,0,...D.blocks);
+  sc.stacks=sc.stacks.filter(s=>s.blocks.length);
+  D=null;renderProgram();
+}
+function clickBlock(st,ev){
+  if(st.el._palette) return;
+  let n=st.target;
+  while(n){if(n._blk&&n._blk.rk&&L.replace&&L.replace[n._blk.rk]){openMenu(n._blk,ev);return;}if(n===st.el) break;n=n.parentNode;}
+}
+function openMenu(blk,ev){
+  const m=$('#menu');m.innerHTML='';m.appendChild(h('div','mh','換成哪一塊？'));
+  for(const opt of L.replace[blk.rk]){
+    const args=opt.keep?Object.assign({},blk.args,clone(opt.args||{})):clone(opt.args||{});
+    const pv={op:opt.op,args};const it=h('div','mi');
+    if(pv.op===blk.op&&JSON.stringify(clone(args))===JSON.stringify(clone(blk.args))) it.classList.add('cur');
+    const ctx=newCtx({});it.appendChild(shape(pv)==='bool'||shape(pv)==='rep'?renderRep(pv,ctx):renderBlock(pv,ctx));
+    it.onclick=()=>{blk.op=opt.op;blk.args=args;closeMenu();renderProgram();};
+    m.appendChild(it);
+  }
+  m.style.display='block';
+  const w=m.offsetWidth,hh=m.offsetHeight;
+  m.style.left=Math.min(ev.clientX,innerWidth-w-8)+'px';m.style.top=Math.min(ev.clientY+10,innerHeight-hh-8)+'px';
+}
+function closeMenu(){$('#menu').style.display='none';}
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#menu')) closeMenu();});
+
+/* =========================================================
+   舞台
+   ========================================================= */
+let stageEls={},pen={clears:0,drawn:0},penCtx=null;
+function buildStage(){
+  const st=$('#stage');st.innerHTML='';
+  if(L.bg==='ground') st.appendChild(h('div','ground'));
+  const cv=document.createElement('canvas');cv.width=480;cv.height=360;st.appendChild(cv);penCtx=cv.getContext('2d');
+  stageEls={};
+  for(const [n,s] of Object.entries(L.sprites)){const e=h('div','sprite'),bb=h('div','bubble');st.appendChild(e);st.appendChild(bb);stageEls[n]={el:e,bubble:bb,cos:null,kind:s.kind};}
+  const mon=h('div','monitors');mon.id='monitors';st.appendChild(mon);
+  for(const v of (L.monitors||[])){const m=h('div','monitor');m.append(h('span',null,v));const mv=h('span','mv','0');mv.dataset.v=v;m.append(mv);mon.appendChild(m);}
+  const rl=h('div');rl.id='runlabel';st.appendChild(rl);
+  const ki=h('div');ki.id='keyind';st.appendChild(ki);
+}
+function resetPen(){penCtx.clearRect(0,0,480,360);pen={clears:0,drawn:0};}
+function drawStage(rt){
+  for(const [n,sp] of Object.entries(rt.sp)){
+    const E=stageEls[n],[W,H]=SIZE[E.kind];
+    if(E.cos!==sp.costume){E.el.innerHTML=ART[E.kind](sp.costume);E.cos=sp.costume;}
+    E.el.style.display=sp.visible?'':'none';
+    E.el.style.transform=`translate(${240+sp.x-W/2}px,${180-sp.y-H/2}px)`;
+    E.el.firstChild.style.transform=sp.dir<0?'scaleX(-1)':'';
+    if(sp.say&&sp.visible){E.bubble.style.display='block';E.bubble.textContent=sp.say.text;
+      const bw=E.bubble.offsetWidth,bh=E.bubble.offsetHeight;
+      const bx=Math.max(4,Math.min(476-bw,240+sp.x+W/2-14)),by=Math.max(4,180-sp.y-H/2-bh-4);
+      E.bubble.style.transform=`translate(${bx}px,${by}px)`;}
+    else E.bubble.style.display='none';
+  }
+  document.querySelectorAll('#monitors .mv').forEach(m=>{const v=rt.vars[m.dataset.v];m.textContent=v==null?0:(Math.round(Number(v)*100)/100);});
+  if(rt.clears!==pen.clears||rt.segs.length<pen.drawn){penCtx.clearRect(0,0,480,360);pen.clears=rt.clears;pen.drawn=0;}
+  penCtx.strokeStyle='#4C97FF';penCtx.lineWidth=4;penCtx.lineCap='round';
+  for(let i=pen.drawn;i<rt.segs.length;i++){const s=rt.segs[i];penCtx.beginPath();penCtx.moveTo(240+s[0],180-s[1]);penCtx.lineTo(240+s[2],180-s[3]);penCtx.stroke();}
+  pen.drawn=rt.segs.length;
+  const ki=$('#keyind');
+  if(rt.down.size){ki.style.display='block';ki.textContent='⌨ '+[...rt.down].map(k=>({space:'空白鍵',right:'→ 右鍵',left:'← 左鍵'})[k]||k).join(' ');}
+  else ki.style.display='none';
+}
+function previewStage(){resetPen();$('#runlabel').textContent='';drawStage(new RT(L,code,{}));}
+let prevRun=[];
+function markRunning(rt){
+  prevRun.forEach(e=>e.classList.remove('running'));prevRun=[];
+  if(!rt) return;
+  for(const th of rt.th){if(th.done||!th.cur||!th.cur._id) continue;const e=idMap[th.cur._id];if(e){e.classList.add('running');prevRun.push(e);}}
+}
+
+/* =========================================================
+   執行（動畫）
+   ========================================================= */
+function animate(runs,done){
+  const A={stop:false,done};anim=A;let ri=0,rt,last=0,acc=0;
+  const begin=()=>{rt=new RT(L,code,Object.assign({keys:L.keys||[]},runs[ri]));A.rt=rt;resetPen();
+    $('#runlabel').textContent=runs[ri].label||'';drawStage(rt);last=0;acc=0;requestAnimationFrame(fr);};
+  const fr=ts=>{
+    if(A.stop) return;
+    if(!last) last=ts;acc+=Math.min(200,ts-last);last=ts;
+    const dt=1000/30;while(acc>=dt&&!rt.finished()){rt.step();acc-=dt;}
+    drawStage(rt);markRunning(rt);
+    if(rt.finished()){markRunning(null);ri++;
+      if(ri<runs.length) setTimeout(()=>{if(!A.stop) begin();},700);
+      else{anim=null;setTimeout(()=>{if(!A.stop) done();},250);}
+      return;}
+    requestAnimationFrame(fr);
+  };
+  begin();
+}
+function stopAnim(){if(!anim) return;const A=anim;A.stop=true;anim=null;markRunning(null);A.done();}
+function setRunning(mode){
+  running=mode;
+  $('#prog').classList.toggle('locked',!!mode);$('#palette').classList.toggle('locked',!!mode);
+  const rb=$('#runBtn'),pb=$('#playBtn');
+  rb.textContent=mode==='run'?'■ 停止':'▶ 執行';rb.classList.toggle('stop',mode==='run');rb.disabled=mode==='live';
+  pb.textContent=mode==='live'?'■ 停止':'🎮 自己玩';pb.disabled=mode==='run';
+  $('#resetBtn').disabled=!!mode;$('#solBtn').disabled=!!mode;
+  updateHintBtn();
+}
+function runProgram(){
+  if(running==='run'){stopAnim();return;}
+  if(running) return;
+  closeMenu();if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
+  let res;
+  try{res=judge(L,code);}catch(e){console.error(e);res={results:[{ok:false,msg:'程式好像怪怪的，檢查看看積木有沒有接好'}],caught:0,total:L.bugs.length,all:false};}
+  setRunning('run');
+  $('#status').innerHTML='<div class="muted">▶ 程式執行中…'+(L.keyDesc?'<br>'+L.keyDesc:'')+'</div>';
+  animate(L.runs||[{}],()=>{setRunning(null);showResult(res);});
+}
+function playLive(){
+  if(running==='live'){stopAnim();return;}
+  if(running) return;
+  closeMenu();if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
+  setRunning('live');
+  $('#status').innerHTML='<div><b>🎮 自己玩模式</b>：用鍵盤試試看（空白鍵、← →）。<br><span class="muted">這個模式不會判定，要過關請按「▶ 執行」。</span></div>';
+  animate([{live:true,max:60,keys:[]}],()=>{setRunning(null);$('#status').innerHTML='<div class="muted">自己玩結束。修好後按「▶ 執行」判定。</div>';});
+}
+const KEYMAP={' ':'space','ArrowRight':'right','ArrowLeft':'left'};
+document.addEventListener('keydown',e=>{
+  const k=KEYMAP[e.key];if(!k) return;
+  if(e.target.tagName==='INPUT') return;
+  if($('#game').classList.contains('on')) e.preventDefault();
+  if(anim&&anim.rt&&anim.rt.live&&!anim.rt.down.has(k)){anim.rt.down.add(k);anim.rt.fireKey(k);}
+});
+document.addEventListener('keyup',e=>{const k=KEYMAP[e.key];if(k&&anim&&anim.rt&&anim.rt.live) anim.rt.down.delete(k);});
+
+/* =========================================================
+   回饋、提示、計分
+   ========================================================= */
+const passed=()=>state.stars[cur]>0;
+function showResult(res){
+  const st=$('#status'),n=res.total;
+  if(res.all){onPass(res);return;}
+  const fail=res.results.find(r=>!r.ok);
+  st.innerHTML=`<div class="bad">🐛 還有蟲沒抓到</div><div class="why">${fail.msg}</div>`+(n>1?`<div class="cnt">🐞 已抓到 ${res.caught} / ${n}</div>`:'');
+}
+function onPass(res){
+  const first=!passed();
+  if(first){state.stars[cur]=Math.max(1,3-state.hints[cur]);if(cur===LEVELS.length-1) state.done=true;save();}
+  updateTop();updateHintBtn();confetti();
+  const last=cur===LEVELS.length-1;
+  $('#status').innerHTML=`<div class="good">🎉 抓到所有蟲！</div>`+(res.total>1?`<div class="cnt ok">🐞 已抓到 ${res.total} / ${res.total}</div>`:'')+
+    `<div>這關得到 <span class="stars">${'⭐'.repeat(state.stars[cur])}</span></div>`;
+  const go=()=>{$('#passPop').classList.remove('on');last?showSummary():gotoLevel(cur+1);};
+  const b=h('button','next',last?'🏆 看結算':'下一關 ▶');b.onclick=go;$('#status').appendChild(b);
+  $('#popStars').textContent='⭐'.repeat(state.stars[cur]);
+  $('#popNext').textContent=last?'🏆 看結算':'下一關 ▶';$('#popNext').onclick=go;
+  setTimeout(()=>$('#passPop').classList.add('on'),600);
+}
+function renderHints(){
+  const ha=$('#hintarea');ha.innerHTML='';const k=state.hints[cur];
+  if(k>=1) ha.appendChild(h('div','hintline','💡 提示 1：有蟲的地方用紅色虛線框起來了。'));
+  if(k>=2) ha.appendChild(h('div','hintline','💡 提示 2：'+L.hint));
+}
+function updateHintBtn(){
+  const b=$('#hintBtn'),k=state.hints[cur];
+  b.textContent=k>=2?'💡 用完了':'💡 提示 −1⭐';
+  b.disabled=!!running||k>=2||passed();
+}
+function useHint(){
+  if(state.hints[cur]>=2||passed()||running) return;
+  state.hints[cur]++;save();renderHints();renderProgram();updateHintBtn();
+}
+function updateTop(){
+  $('#lvInfo').textContent=`第 ${cur+1} / ${LEVELS.length} 關：${L.title}`;
+  $('#timeInfo').textContent='⏱ '+fmt(state.elapsed);
+  $('#starInfo').textContent='⭐ '+state.stars.reduce((a,b)=>a+b,0);
+}
+function gotoLevel(i){state.level=i;save();loadLevel(i);}
+function loadLevel(i,raw){
+  if(anim) stopAnim();
+  $('#passPop').classList.remove('on');
+  cur=i;L=LEVELS[i];code=buildCode(L,raw||L.make({}));
+  active=Object.keys(L.sprites).find(n=>!L.sprites[n].ro);
+  $('#taskText').innerHTML='任務：'+L.task+(L.note?`<span id="taskNote">${L.note}</span>`:'');
+  $('#bugN').textContent='🐞 × '+L.bugs.length;
+  $('#playBtn').style.display=L.keys?'':'none';
+  $('#solBtn').style.display=teacher?'':'none';
+  renderPalette();buildStage();renderProgram();previewStage();renderHints();updateTop();updateHintBtn();closeMenu();
+  $('#status').innerHTML=passed()
+    ?'<div class="good" style="font-size:20px">✅ 這關已經過了</div><div class="muted">可以再玩一次，或直接前往下一關。</div>'
+    :'<div class="muted">找出程式裡的蟲，修好之後按「▶ 執行」。</div>';
+  if(passed()&&cur<LEVELS.length-1){const b=h('button','next','下一關 ▶');b.onclick=()=>gotoLevel(cur+1);$('#status').appendChild(b);}
+  if(passed()&&cur===LEVELS.length-1&&state.done){const b=h('button','next','🏆 看結算');b.onclick=showSummary;$('#status').appendChild(b);}
+}
+function resetLevel(){if(running) return;loadLevel(cur);}
+function enterGame(){show('game');if(!state.started){state.started=true;save();}loadLevel(Math.min(state.level,LEVELS.length-1));}
+
+/* 計時：只在遊戲畫面計時，存進 localStorage，重新整理後接續 */
+let lastNow=Date.now();
+setInterval(()=>{const now=Date.now();
+  if($('#game').classList.contains('on')&&state.started&&!state.done){state.elapsed+=now-lastNow;save();if(L) updateTop();}
+  lastNow=now;},1000);
+
+function showSummary(){
+  const total=state.stars.reduce((a,b)=>a+b,0);
+  $('#sumTime').textContent=fmt(state.elapsed);
+  $('#sumStar').textContent=`⭐ ${total} / 30`;
+  $('#sumTitle').textContent=total>=27?'🏆 抓蟲大師':total>=18?'🥈 除錯高手':'🐣 見習隊員';
+  const row=$('#sumRow');row.innerHTML='';state.stars.forEach((s,i)=>row.appendChild(h('span',null,`第${i+1}關 ${'⭐'.repeat(s)||'—'}`)));
+  show('summary');
+}
+function playAgain(){try{localStorage.removeItem(KEY);}catch(e){}state=fresh();$('#nameIn').value='';show('start');}
+
+/* 彩帶 */
+function confetti(){
+  const c=$('#fx'),g=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;c.style.display='block';
+  const col=['#FFBF00','#4C97FF','#9966FF','#59C059','#FF8C1A','#E5484D'],P=[];
+  for(let i=0;i<170;i++) P.push({x:innerWidth*0.62+(Math.random()-.5)*260,y:innerHeight*0.5,vx:(Math.random()-.5)*16,vy:-Math.random()*15-5,c:col[i%6],s:7+Math.random()*7,r:Math.random()*6,vr:(Math.random()-.5)*.4});
+  const t0=performance.now();
+  (function f(ts){g.clearRect(0,0,c.width,c.height);
+    for(const p of P){p.vy+=0.38;p.vx*=0.99;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;g.save();g.translate(p.x,p.y);g.rotate(p.r);g.fillStyle=p.c;g.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);g.restore();}
+    if(ts-t0<2300) requestAnimationFrame(f);else{g.clearRect(0,0,c.width,c.height);c.style.display='none';}})(t0);
+}
+
+/* =========================================================
+   老師模式（密碼 naes5922023）
+   ========================================================= */
+function openTeacher(){
+  const mc=$('#modalCard');$('#modal').classList.add('on');
+  if(!teacher){
+    mc.innerHTML='<h2 style="margin-top:0">👩‍🏫 老師模式</h2><div>請輸入老師密碼</div><input type="password" id="tpw" autocomplete="off"><div class="err" id="terr"></div>'+
+      '<button class="big" id="tok" style="font-size:18px;padding:8px 28px">確定</button> <button class="small" id="tcancel">取消</button>';
+    const ok=()=>{if($('#tpw').value==='naes5922023'){teacher=true;openTeacher();}else $('#terr').textContent='密碼不對喔';};
+    $('#tok').onclick=ok;$('#tpw').onkeydown=e=>{e.stopPropagation();if(e.key==='Enter') ok();};$('#tcancel').onclick=closeModal;
+    setTimeout(()=>$('#tpw').focus(),30);return;
+  }
+  mc.innerHTML='<h2 style="margin-top:0">👩‍🏫 老師模式：跳到任一關</h2><div class="muted">遊戲畫面會多一顆「🔑 解答」按鈕，可以示範正確程式。</div><div class="lvgrid" id="lvgrid"></div><button class="small" id="tcancel">關閉</button>';
+  LEVELS.forEach((lv,i)=>{const b=h('button',null,`第 ${i+1} 關　${lv.title}　🐞×${lv.bugs.length}`);b.onclick=()=>{closeModal();state.level=i;state.done=false;save();enterGame();};$('#lvgrid').appendChild(b);});
+  $('#tcancel').onclick=closeModal;
+  if($('#game').classList.contains('on')) $('#solBtn').style.display='';
+}
+function closeModal(){$('#modal').classList.remove('on');}
+
+/* =========================================================
+   自我測試（網址加 ?selftest=1）
+   ========================================================= */
+function runSelfTest(){
+  const out=[];let ok=true;
+  LEVELS.forEach((lv,li)=>{
+    const names=lv.bugs.map(b=>b.n),n=names.length;
+    for(let m=0;m<(1<<n);m++){
+      const f={};names.forEach((nm,j)=>{if(m&(1<<j)) f[nm]=1;});
+      const exp=lv.expectN?lv.expectN(f):Object.keys(f).length;
+      const r=judge(lv,buildCode(lv,lv.make(f)));const pass=r.caught===exp&&r.all===(exp===n);if(!pass) ok=false;
+      out.push(`${pass?'OK':'XX'}  L${li+1} 修好[${Object.keys(f).join('')||'無'}]  抓到 ${r.caught}/${n}（預期 ${exp}）  ${r.results.filter(x=>!x.ok).map(x=>x.msg).join(' | ')}`);
+    }
+    (lv.alts||[]).forEach((a,k)=>{const r=judge(lv,buildCode(lv,a()));if(!r.all) ok=false;out.push(`${r.all?'OK':'XX'}  L${li+1} 另一種正確寫法${k+1}  抓到 ${r.caught}/${n}`);});
+  });
+  window.SELFTEST={ok,lines:out};
+  document.body.appendChild(h('pre','selftest',(ok?'ALL PASS\n\n':'有失敗項目\n\n')+out.join('\n')));
+  return window.SELFTEST;
+}
+
+/* =========================================================
+   啟動
+   ========================================================= */
+$('#startBtn').onclick=enterGame;
+$('#teacherBtn1').onclick=openTeacher;$('#teacherBtn2').onclick=openTeacher;
+$('#runBtn').onclick=runProgram;$('#resetBtn').onclick=resetLevel;$('#hintBtn').onclick=useHint;$('#playBtn').onclick=playLive;
+$('#solBtn').onclick=()=>{if(!running) loadLevel(cur,L.make({A:1,B:1,C:1}));};
+$('#againBtn').onclick=playAgain;
+$('#popStay').onclick=()=>$('#passPop').classList.remove('on');
+
+/* 依視窗大小等比例縮放：設計尺寸 1366×700，小視窗縮小、大螢幕放大，永遠不需要捲動 */
+let SCALE=1;
+function fit(){
+  const s=Math.max(0.45,Math.min(1.4,innerWidth/1366,innerHeight/700));SCALE=s;
+  const g=$('#game');g.style.width=(innerWidth/s)+'px';g.style.height=(innerHeight/s)+'px';g.style.transform=`scale(${s})`;
+  document.documentElement.style.setProperty('--cs',Math.min(1.3,innerHeight/640,innerWidth/820));
+  if(L&&code&&!D) renderProgram();
+}
+addEventListener('resize',fit);fit();
+$('#modal').addEventListener('pointerdown',e=>{if(e.target.id==='modal') closeModal();});
+window.DP={LEVELS,judge,buildCode,runSelfTest,get code(){return code;},get state(){return state;},loadLevel};
+
+if(/selftest=1/.test(location.search)) runSelfTest();
+if(state.done) showSummary();
+else if(state.started) enterGame();
+else show('start');
+</script>
+</body>
+</html>
